@@ -13,6 +13,16 @@ os.makedirs(CACHE, exist_ok=True)
 # (tier, min_rank, max_rank, n_artists, n_tracks_each)
 TIERS = [("core", 1, 100, 30, 4), ("mid", 101, 400, 35, 3), ("tail", 401, 10**9, 25, 3)]
 PERSONAL = []  # [("Artist", "Track"), ...] your own picks, including deliberate false pos/neg
+SKIP_TRACKS = {
+    ("maple", "fr<3nd"),
+    ("a. g. cook", "a-z"),
+    ("agatka iskra", "i do coke"),
+    ("agatka iskra", "tight dress"),
+    ("gupi", "what's known now"),
+    ("mimideath", "if god didnt want us to snort worms he wouldn't have made them cylindrical!"),
+    ("petal supply", "ddiscombobulated"),
+    ("six impala", "spare your enamel, she needs it more than you"),
+}
 BAD = re.compile(r"\b(remix|mix|sped up|slowed|live|instrumental|acoustic|demo|edit|vip|reprise|version)\b", re.I)
 ANNOTATION_COLS = ["year", "collective_label", "vocal_treatment", "genre_fusion",
                    "queer_themes_in_lyrics", "artist_public_queer_identity", "my_membership_judgment"]
@@ -68,10 +78,16 @@ def track_info(artist, track):
     return t.get("album", {}).get("title", ""), int(t.get("playcount", 0) or 0)
 
 
+def normalized_track_key(artist, track):
+    return artist.casefold(), track.replace("’", "'").casefold()
+
+
 def pick_tracks(artist, n, rng):
     tracks = call("artist.getTopTracks", artist=artist, autocorrect=1, limit=30).get("toptracks", {}).get("track", [])
     seen, clean = set(), []
     for i, t in enumerate(tracks, 1):
+        if normalized_track_key(artist, t["name"]) in SKIP_TRACKS:
+            continue
         norm = re.sub(r"\s*[\(\[].*?[\)\]]", "", t["name"]).strip().lower()
         if BAD.search(t["name"]) or norm in seen:
             continue
