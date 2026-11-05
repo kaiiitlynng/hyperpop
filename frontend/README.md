@@ -1,16 +1,25 @@
-# React + Vite
+# Hyperpop archive
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The Vite app renders the 300-track collection from `public/data/songs.json`.
+Cards are keyboard accessible and open a detail dialog with CSV metadata,
+lyrics, and the Last.fm artist image when one has been enriched.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## Refresh Last.fm media
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Keep the API key server-side in `.env` and run this from the repository root:
 
-## Expanding the Oxlint configuration
+```bash
+LASTFM_API_KEY=... python extract_lastfm_media.py
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+The script uses `lastfm_cache/`, calls `track.getInfo` for album artwork and
+`artist.getInfo` for the artist image, then writes the frontend manifest. It
+also joins lyrics from `tracks_with_lyrics.csv`. The API key is never included
+in the generated frontend data.

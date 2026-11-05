@@ -1,184 +1,23 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-}
+.app-shell { max-width: 1440px; margin: auto; padding: 48px 5vw 80px; }
+.song-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 36px 22px; }
+.song-card { min-width: 0; color: inherit; text-align: left; text-decoration: none; }
+.cover-wrap { aspect-ratio: 1; overflow: hidden; margin-bottom: 13px; background: #27232a; }
+.cover-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.song-card:hover .cover-wrap img, .song-card:focus-visible .cover-wrap img { transform: scale(1.05); }
+.song-card:focus-visible { outline: 2px solid #ef4b36; outline-offset: 7px; }
+.song-title, .song-artist { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.song-title { font-weight: 600; }.song-artist { margin-top: 3px; color: #756d72; font-size: 14px; }
+.status-message { padding: 70px 20px; text-align: center; color: #756d72; }.error { color: #c53728; }
+.track-page { min-height: 100vh; padding: 30px 5vw 70px; }
+.track-nav { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto 55px; }
+.track-nav button { border: 0; padding: 8px; color: #242126; background: transparent; font-size: 34px; line-height: 1; cursor: pointer; }
+.track-nav .back-link { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+.track-content { display: grid; grid-template-columns: minmax(280px, 480px) minmax(300px, 560px); gap: clamp(35px, 8vw, 110px); align-items: start; max-width: 1100px; margin: auto; }
+.track-image { aspect-ratio: 1; overflow: hidden; background: #27232a; }.track-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.track-copy { padding-top: 12px; }.track-kicker, dt, .lyrics-label { color: #756d72; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.track-copy h1 { margin: 18px 0 8px; font-size: clamp(38px, 6vw, 78px); line-height: .9; letter-spacing: -.06em; font-weight: 500; }
+.track-artist { margin: 0 0 42px; color: #756d72; font-size: 20px; }.metadata { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 0 0 38px; padding: 18px 0; border-top: 1px solid #d8d3cd; border-bottom: 1px solid #d8d3cd; }
+.metadata div { min-width: 0; }.metadata dd { margin: 6px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }.lyrics { white-space: pre-line; }.lyrics-label { margin-bottom: 13px; }.lyrics > p:last-child { max-height: 310px; overflow: auto; margin: 0 0 28px; line-height: 1.65; }
+.lastfm-link { color: #ef4b36; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; }
+@media (max-width: 1000px) { .song-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }.track-content { grid-template-columns: minmax(240px, 380px) 1fr; gap: 40px; } }
+@media (max-width: 650px) { .app-shell { padding: 25px 20px 55px; }.song-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 14px; }.track-page { padding: 18px 20px 50px; }.track-nav { margin-bottom: 28px; }.track-content { display: block; }.track-image { margin-bottom: 35px; }.track-copy { padding: 0; }.track-copy h1 { font-size: 48px; }.metadata { gap: 8px; } }

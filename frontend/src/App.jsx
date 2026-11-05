@@ -1,121 +1,99 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
 
+const FALLBACK_COVER = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80'
+
+function trackIndexFromPath() {
+  const match = window.location.pathname.match(/^\/track\/(\d+)$/)
+  return match ? Number(match[1]) : null
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [songs, setSongs] = useState([])
+  const [trackIndex, setTrackIndex] = useState(trackIndexFromPath)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    fetch('/data/songs.json')
+      .then((response) => {
+        if (!response.ok) throw new Error('Could not load the song collection.')
+        return response.json()
+      })
+      .then(setSongs)
+      .catch((error) => setLoadError(error.message))
+  }, [])
+
+  useEffect(() => {
+    const syncRoute = () => setTrackIndex(trackIndexFromPath())
+    window.addEventListener('popstate', syncRoute)
+    return () => window.removeEventListener('popstate', syncRoute)
+  }, [])
+
+  const goTo = (index) => {
+    window.history.pushState({}, '', index === null ? '/' : `/track/${index}`)
+    setTrackIndex(index)
+    window.scrollTo(0, 0)
+  }
+
+  if (loadError) return <p className="status-message error">{loadError}</p>
+  if (!songs.length) return <p className="status-message">Loading...</p>
+
+  if (trackIndex !== null && songs[trackIndex]) {
+    return <TrackPage song={songs[trackIndex]} index={trackIndex} total={songs.length} onNavigate={goTo} />
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <main className="app-shell">
+      <section className="song-grid" aria-label="Song collection">
+        {songs.map((song, index) => (
+          <a className="song-card" href={`/track/${index}`} key={`${song.artist}-${song.track}-${index}`} onClick={(event) => {
+            event.preventDefault()
+            goTo(index)
+          }}>
+            <div className="cover-wrap">
+              <img src={song.cover_url || song.artist_image_url || FALLBACK_COVER} alt="" onError={(event) => { event.currentTarget.src = FALLBACK_COVER }} />
+            </div>
+            <span className="song-title">{song.track}</span>
+            <span className="song-artist">{song.artist}</span>
+          </a>
+        ))}
       </section>
+    </main>
+  )
+}
 
-      <div className="ticks"></div>
+function TrackPage({ song, index, total, onNavigate }) {
+  const previous = index > 0 ? index - 1 : total - 1
+  const next = index < total - 1 ? index + 1 : 0
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+  return (
+    <main className="track-page">
+      <nav className="track-nav" aria-label="Track navigation">
+        <button onClick={() => onNavigate(previous)} aria-label="Previous track">←</button>
+        <button onClick={() => onNavigate(null)} className="back-link">All tracks</button>
+        <button onClick={() => onNavigate(next)} aria-label="Next track">→</button>
+      </nav>
+      <article className="track-content">
+        <div className="track-image">
+          <img src={song.artist_image_url || song.cover_url || FALLBACK_COVER} alt={`${song.artist}`} onError={(event) => { event.currentTarget.src = FALLBACK_COVER }} />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+        <div className="track-copy">
+          <p className="track-kicker">{String(index + 1).padStart(3, '0')} / {total}</p>
+          <h1>{song.track}</h1>
+          <p className="track-artist">{song.artist}</p>
+          <dl className="metadata">
+            <div><dt>Album</dt><dd>{song.album || 'Unknown album'}</dd></div>
+            <div><dt>Year</dt><dd>{song.year || '—'}</dd></div>
+            <div><dt>Listeners</dt><dd>{song.listeners ? Number(song.listeners).toLocaleString() : '—'}</dd></div>
+          </dl>
+          <div className="lyrics">
+            <p className="lyrics-label">Lyrics</p>
+            <p>{song.lyrics || 'Lyrics are not available for this track.'}</p>
+          </div>
+          {song.lastfm_url && <a className="lastfm-link" href={song.lastfm_url} target="_blank" rel="noreferrer">Open on Last.fm ↗</a>}
         </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      </article>
+    </main>
   )
 }
 
