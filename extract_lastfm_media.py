@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import time
+import unicodedata
 from pathlib import Path
 
 import requests
@@ -11,6 +12,9 @@ from dotenv import load_dotenv
 
 BASE_URL = "https://ws.audioscrobbler.com/2.0/"
 CACHE_DIR = Path("lastfm_cache")
+# Last.fm's blank star, returned when it has no image.
+PLACEHOLDER_IMAGE = "2a96cbd8b46e442fc41c2b86b821562f"
+CODING_FIELDS = ("lyric_basis", "initial_codes", "focused_codes", "axial_codes", "queer_reading")
 
 
 def lastfm_request(api_key, method, **params):
@@ -38,35 +42,47 @@ def lastfm_request(api_key, method, **params):
 def largest_image(images):
     preferred_sizes = ("extralarge", "large", "medium", "small")
     by_size = {image.get("size"): image.get("#text", "").strip() for image in images}
-    return next((by_size[size] for size in preferred_sizes if by_size.get(size)), "")
+    url = next((by_size[size] for size in preferred_sizes if by_size.get(size)), "")
+    return "" if PLACEHOLDER_IMAGE in url else url
 
 
-def enrich_track(api_key, row):
-    track_data = lastfm_request(api_key, "track.getInfo", artist=row["artist"], track=row["track"])
-    track = track_data.get("track", {})
-    artist_data = lastfm_request(api_key, "artist.getInfo", artist=row["artist"])
-    artist = artist_data.get("artist", {})
+def song_key(row):
+    return tuple(unicodedata.normalize("NFC", row[field]).strip().casefold() for field in ("artist", "track"))
+
+
+def fetch_media(api_key, row):
+    track = lastfm_request(api_key, "track.getInfo", artist=row["artist"], track=row["track"]).get("track", {})
+    artist = lastfm_request(api_key, "artist.getInfo", artist=row["artist"]).get("artist", {})
     album = track.get("album", {})
     return {
-        "track": row["track"],
-        "artist": row["artist"],
-        "album": row.get("album", "") or album.get("title", ""),
-        "year": row.get("year", ""),
-        "lyrics": row.get("lyrics", ""),
-        "lyrics_status": row.get("lyrics_status", ""),
-        "lyrics_source": row.get("lyrics_source", ""),
+        "album": album.get("title", ""),
         "cover_url": largest_image(album.get("image", [])),
         "artist_image_url": largest_image(artist.get("image", [])),
         "lastfm_url": track.get("url", ""),
-        "listeners": track.get("listeners", ""),
+        "listeners": artist.get("stats", {}).get("listeners", ""),
         "playcount": track.get("playcount", ""),
     }
 
 
+def build_song(row, media):
+    artist_image = media["artist_image_url"]
+    return {
+        "track": row["track"],
+        "artist": row["artist"],
+        "lyrics": row["lyrics"],
+        **{field: row[field] for field in CODING_FIELDS},
+        "album": media["album"],
+        "cover_url": media["cover_url"],
+        "artist_image_url": "" if PLACEHOLDER_IMAGE in artist_image else artist_image,
+        "lastfm_url": media["lastfm_url"],
+        "listeners": media["listeners"],
+        "playcount": media["playcount"],
+    }
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Enrich a song CSV with cached Last.fm cover and artist images.")
-    parser.add_argument("--input", default="hyperpop_top_sample.csv")
-    parser.add_argument("--lyrics", default="tracks_with_lyrics.csv")
+    parser = argparse.ArgumentParser(description="Build the frontend song manifest from the coded collection.")
+    parser.add_argument("--input", default="collection.csv")
     parser.add_argument("--output", default="frontend/public/data/songs.json")
     args = parser.parse_args()
 
@@ -75,18 +91,30 @@ def main():
     if not api_key:
         parser.error("LASTFM_API_KEY is not set")
 
-    with open(args.input, newline="", encoding="utf-8") as input_file:
-        source_rows = list(csv.DictReader(input_file))
-    with open(args.lyrics, newline="", encoding="utf-8") as lyrics_file:
-        lyrics_rows = {(row["artist"].casefold(), row["track"].casefold()): row for row in csv.DictReader(lyrics_file)}
-
-    songs = []
-    for index, source_row in enumerate(source_rows, 1):
-        key = (source_row["artist"].casefold(), source_row["track"].casefold())
-        songs.append(enrich_track(api_key, {**source_row, **lyrics_rows.get(key, {})}))
-        print(f"[{index}/{len(source_rows)}] {source_row['artist']} - {source_row['track']}")
+    with open(args.input, newline="", encoding="utf-8-sig") as input_file:
+        rows = list(csv.DictReader(input_file))
 
     output_path = Path(args.output)
+    known = {}
+    if output_path.exists():
+        known = {song_key(song): song for song in json.loads(output_path.read_text(encoding="utf-8"))}
+
+    empty = dict.fromkeys(("album", "cover_url", "artist_image_url", "lastfm_url", "listeners", "playcount"), "")
+    songs = []
+    for index, row in enumerate(rows, 1):
+        media = known.get(song_key(row))
+        if media is None:
+            try:
+                media = fetch_media(api_key, row)
+            except (requests.RequestException, RuntimeError) as error:
+                # The request URL in an HTTP error contains the API key, so don't print it.
+                detail = error if isinstance(error, RuntimeError) else type(error).__name__
+                print(f"no media for {row['artist']} - {row['track']}: {detail}")
+                media = empty
+            else:
+                print(f"[{index}/{len(rows)}] {row['artist']} - {row['track']}")
+        songs.append(build_song(row, media))
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(songs, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"wrote {len(songs)} songs to {output_path}")
